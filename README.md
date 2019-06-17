@@ -51,7 +51,7 @@ public class UnityTagReaderExample : MonoBehaviour
             _bytes[i * 4 + 3] = pixel.a;
         }
 
-        byte[] result = CodeReader.Read(_bytes, _texture.width, _texture.height, _debugBytes);
+        byte[] result = CodeReader.Read(_bytes, _texture.width, _texture.height);
         Debug.Log(Encoding.UTF8.GetString(result));
     }
 }
