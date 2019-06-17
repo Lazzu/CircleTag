@@ -56,3 +56,5 @@ public class UnityTagReaderExample : MonoBehaviour
     }
 }
 ```
+## Usage screenshot
+![Screenshot of CircleTag in use](https://raw.githubusercontent.com/Lazzu/CircleTag/master/CircleTag.png)
