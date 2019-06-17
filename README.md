@@ -10,8 +10,8 @@ Generator.Settings settings = new Generator.Settings() {
     Width = 512,
     Height = 512
 };
-byte[] image = Generator.From(data, settings);
-byte[] result = Reader.Read(image, width, height);
+byte[] rgbaImage = Generator.From(data, settings);
+byte[] result = Reader.Read(rgbaImage, width, height);
 Console.WriteLine(Encoding.UTF8.GetString(result));
 ```
 ## Unity Webcam Reading Example
