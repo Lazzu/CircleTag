@@ -1,9 +1,9 @@
 
 using System;
 
-namespace DefaultNamespace
+namespace CircleTag
 {
-    public static class CodeReader
+    public static class Reader
     {
         private const uint ColorDifferenceTolerance = 250;
         private static byte[] _debugBytes;

@@ -1,9 +1,9 @@
 using System;
 using TMPro;
 
-namespace DefaultNamespace
+namespace CircleTag
 {
-    public static class CodeGenerator
+    public static class Generator
     {
         public class Settings
         {
