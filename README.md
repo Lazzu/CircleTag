@@ -18,7 +18,6 @@ Console.WriteLine(Encoding.UTF8.GetString(result));
 ```cs
 public class UnityTagReaderExample : MonoBehaviour
 {
-    private CodeGenerator.Settings _settings;
     private WebCamTexture _texture;
     private Texture2D _generatedTexture;
     private Color32[] _pixels;
@@ -31,7 +30,6 @@ public class UnityTagReaderExample : MonoBehaviour
     {
         WebCamDevice[] devices = WebCamTexture.devices;
         _texture = new WebCamTexture(devices[0].name);
-        _settings = new CodeGenerator.Settings();
         _outputImage.texture = _texture;
     }
 
