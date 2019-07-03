@@ -31,7 +31,7 @@ namespace CircleTag
             _radiusScale = 1.0 / (_settings.EndingRadius - _settings.StartingRadius);
             byte[] newBytes = new byte[bytes.Length + 2];
             Array.Copy(bytes, 0, newBytes, 1, bytes.Length);
-            byte hash = CodeReader.CalculateHash(bytes);
+            byte hash = Reader.CalculateHash(bytes);
             newBytes[0] = (byte) bytes.Length;
             newBytes[bytes.Length + 1] = hash;
             bytes = newBytes;
