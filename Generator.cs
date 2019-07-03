@@ -10,10 +10,10 @@ namespace CircleTag
             public int Width = 512;
             public int Height = 512;
             public uint BackgroundColor = 0x00ffffff;
-            public uint ForegroundColor = 0x44ffffff;
+            public uint ForegroundColor = 0xffffffff;
             public double StartingRadius = 0.3;
             public double EndingRadius = 0.95;
-            public int BytesPerLayer = 2;
+            public int BytesPerLayer = 3;
         }
         
         private static int _segments;
@@ -45,12 +45,14 @@ namespace CircleTag
             fixed (byte* pixelBytes = output)
             {
                 uint* pixels = (uint*)pixelBytes;
-                for (int pixelIndex = 0; pixelIndex < size; pixelIndex++)
+                for (int y = 0; y < _settings.Height; y++)
                 {
-                    int y = pixelIndex / _settings.Height;
-                    int x = pixelIndex % _settings.Height;
-                    bool hasPixel = HasPixel(x, y, halfWidth, halfHeight, bytes);
-                    pixels[pixelIndex] = hasPixel ? _settings.ForegroundColor : _settings.BackgroundColor;
+                    for (int x = 0; x < _settings.Width; x++)
+                    {
+                        int pixelIndex = x + y * _settings.Width;
+                        bool hasPixel = HasPixel(x, y, halfWidth, halfHeight, bytes);
+                        pixels[pixelIndex] = hasPixel ? _settings.ForegroundColor : _settings.BackgroundColor;
+                    }
                 }
             }
             return output;
@@ -123,7 +125,7 @@ namespace CircleTag
             const double oneOverPiTimes180 = 1.0 / Math.PI * 180.0;
             double angle = Math.Atan2(normY, -normX) * oneOverPiTimes180 + 180 + _settings.Angle;
             if (angle > 360.0) angle -= 360.0;
-            double segment = Math.Floor(angle * _segmentScale);
+            double segment = (int)(angle * _segmentScale);
             return (int)segment;
         }
     }
