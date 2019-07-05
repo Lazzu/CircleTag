@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CircleTag
 {
@@ -23,12 +26,20 @@ namespace CircleTag
         private static int _layerCount;
         private static Settings _settings;
         
-        public static unsafe byte[] From(byte[] bytes, Settings settings = null)
+        public static unsafe byte[] From(byte[] bytes, Settings settings = null, byte[] output = null)
         {
+            // Precalculate things
             _settings = settings ?? new Settings();
             _segments = _settings.BytesPerLayer * 8 + 1;
             _segmentScale = 1.0 / (360.0 / _segments);
             _radiusScale = 1.0 / (_settings.EndingRadius - _settings.StartingRadius);
+            uint size = (uint)_settings.Width * (uint)_settings.Height;
+            int halfWidth = _settings.Width / 2;
+            int halfHeight = _settings.Height / 2;
+            _imageLengthNormalizerCached = 1.0 / Math.Min(halfWidth, halfHeight);
+            _layerCount = bytes.Length / _settings.BytesPerLayer + 1;
+            
+            // Add size and hash to the data and pad with zeroes
             byte[] newBytes = new byte[bytes.Length + 2];
             Array.Copy(bytes, 0, newBytes, 1, bytes.Length);
             byte hash = Reader.CalculateHash(bytes);
@@ -36,24 +47,29 @@ namespace CircleTag
             newBytes[bytes.Length + 1] = hash;
             bytes = newBytes;
             bytes = PadBytes(bytes);
-            uint size = (uint)_settings.Width * (uint)_settings.Height;
-            int halfWidth = _settings.Width / 2;
-            int halfHeight = _settings.Height / 2;
-            _imageLengthNormalizerCached = 1.0 / Math.Min(halfWidth, halfHeight);
-            _layerCount = bytes.Length / _settings.BytesPerLayer + 1;
-            byte[] output = new byte[size * 4];
+            
+            
+            // Check if the user wanted to use their own pixel buffer
+            if (output == null)
+            {
+                output = new byte[size * 4];
+            }
+            
+            
+            
+            // Write pixels to the buffer
             fixed (byte* pixelBytes = output)
             {
                 uint* pixels = (uint*)pixelBytes;
-                for (int y = 0; y < _settings.Height; y++)
+                Parallel.For(0, _settings.Height, y =>
                 {
                     for (int x = 0; x < _settings.Width; x++)
                     {
-                        int pixelIndex = x + y * _settings.Width;
-                        bool hasPixel = HasPixel(x, y, halfWidth, halfHeight, bytes);
-                        pixels[pixelIndex] = hasPixel ? _settings.ForegroundColor : _settings.BackgroundColor;
+                        int pixelIndex = y * _settings.Width + x;
+                        pixels[pixelIndex] = PixelColor(x, y, halfWidth, halfHeight, bytes, _settings.ForegroundColor,
+                            _settings.BackgroundColor);
                     }
-                }
+                });
             }
             return output;
         }
@@ -67,7 +83,7 @@ namespace CircleTag
             return paddedBytes;
         }
 
-        private static bool HasPixel(int x, int y, int centerX, int centerY, byte[] data)
+        private static uint PixelColor(int x, int y, int centerX, int centerY, IReadOnlyList<byte> data, uint hasPixelColor, uint emptyPixelColor)
         {
             // Calculate pixel offset from center
             double offX = x - centerX;
@@ -82,7 +98,7 @@ namespace CircleTag
             if (pointDistance < 0.0 || pointDistance > 1.0)
             {
                 // Point is outside of starting and ending radius
-                return false;
+                return emptyPixelColor;
             }
             
             // Calculate the layer
@@ -95,35 +111,43 @@ namespace CircleTag
             int segment = GetSegment(normX, normY);
             
             // Draw inner ring so that there is an empty mark for the segment 0, except when there is no data
-            if (layer <= 0) return data.Length < 3 || segment > 0;
+            if (layer <= 0)
+            {
+                return data.Count < 3 || segment > 0 ? hasPixelColor : emptyPixelColor;
+            }
             
             // Offset layer to accommodate for the inner ring
             layer--;
 
             // The first segment should be solid to allow finding the orientation, except when there is no data
-            if (segment == 0) return data.Length > 3;
+            if (segment == 0)
+            {
+                return data.Count > 3 ? hasPixelColor : emptyPixelColor;
+            }
 
             // Reduce one segment off so the number of segments aligns to number of bytes
             segment--;
 
             // Calculate byte array index for the layer and segment
-            int byteOffset = segment / 8;
+            int byteOffset = segment >> 3;
             int dataIndex = layer * _settings.BytesPerLayer + byteOffset;
+
+            const byte bit = 0x00000001;
             
             // Calculate mask byte for reading the byte array
-            byte mask = (byte)(0b00000001 << segment % 8);
+            byte mask = (byte)(bit << (segment % 8));
             
             // Return empty pixel for where the data has ended
-            if (data.Length <= dataIndex) return false;
+            if (data.Count <= dataIndex) return emptyPixelColor;
             
             // Return if bit is true or false
-            return (data[dataIndex] & mask) > 0;
+            return (data[dataIndex] & mask) > 0 ? hasPixelColor : emptyPixelColor;
         }
 
         private static int GetSegment(double normX, double normY)
         {
             const double oneOverPiTimes180 = 1.0 / Math.PI * 180.0;
-            double angle = Math.Atan2(normY, -normX) * oneOverPiTimes180 + 180 + _settings.Angle;
+            double angle = Math.Atan2(normY, -normX) * oneOverPiTimes180 + 180.0 + _settings.Angle;
             if (angle > 360.0) angle -= 360.0;
             double segment = (int)(angle * _segmentScale);
             return (int)segment;

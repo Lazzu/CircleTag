@@ -37,13 +37,6 @@ namespace CircleTag
             }
         }
         
-        private static readonly uint[] Mask = {
-            0x000000ff,
-            0x0000ff00,
-            0x00ff0000,
-            0xff000000
-        };
-        
         public uint ReadColor(int x, int y)
         {
 #if DEBUG
@@ -86,8 +79,9 @@ namespace CircleTag
             for (int i = 0; i < 4; i++)
             {
                 int bitOffset = i * 8;
-                int value1 = (int)((color1 & Mask[i]) >> bitOffset);
-                int value2 = (int)((color2 & Mask[i]) >> bitOffset);
+                int mask = 0x000000ff << bitOffset;
+                int value1 = (int)((color1 & mask) >> bitOffset);
+                int value2 = (int)((color2 & mask) >> bitOffset);
                 int colorChannelDiff = value1 - value2;
                 //diff += Math.Abs(colorChannelDiff);
                 // Minor optimization. This works because we expect the colorChannelDiff to not be anywhere near
@@ -105,7 +99,8 @@ namespace CircleTag
             for (int i = 0; i < 4; i++)
             {
                 int bitOffset = i * 8;
-                byte value = (byte) ((color & Mask[i]) >> bitOffset);
+                int mask = 0x000000ff << bitOffset;
+                byte value = (byte) ((color & mask) >> bitOffset);
                 Bytes[index + i] = value;
             }
         }
