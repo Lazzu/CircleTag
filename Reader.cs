@@ -87,7 +87,7 @@ namespace CircleTag
                 }
 
                 // Try finding the center with the given offset
-                if (TryFindTagCenterCoordinates(tagImage, offX, offY, out int codeCenterX, out int codeCenterY, out double radius))
+                if (TryFindTagCenterCoordinates(tagImage, offX, offY, out int codeCenterX, out int codeCenterY, out int radius))
                 {
                     tagImage.CodeCenterX = codeCenterX;
                     tagImage.CodeCenterY = codeCenterY;
@@ -104,7 +104,7 @@ namespace CircleTag
             int layerSize = 0;
             int layerCount = 0;
             double angle = tagImage.CodeStartingAngle + tagImage.CodeSegmentSize / 2.0;
-            int startingIndex = (int)(tagImage.CodeRadius);
+            int startingIndex = tagImage.CodeRadius;
             uint dataColor = 0;
             int usedWidth = Math.Min(tagImage.CodeCenterX, tagImage.Width / 2);
             
@@ -185,7 +185,7 @@ namespace CircleTag
                 {
                     // Calculate coordinates
                     double angle = tagImage.CodeStartingAngle + segment * tagImage.CodeSegmentSize + halfSegment;
-                    double distance = tagImage.CodeRadius + tagImage.CodeLayerSize + layer * tagImage.CodeLayerSize + tagImage.CodeLayerSize / 2.0; 
+                    int distance = tagImage.CodeRadius + tagImage.CodeLayerSize + layer * tagImage.CodeLayerSize + tagImage.CodeLayerSize / 2; 
                     CalculateCoords(tagImage, angle, distance, out int x, out int y);
                     
                     // Read bit
@@ -237,7 +237,7 @@ namespace CircleTag
             return hash;
         }
 
-        private static void CalculateCoords(TagImage image, double angle, double distance, out int x, out int y)
+        private static void CalculateCoords(TagImage image, double angle, int distance, out int x, out int y)
         {
             x = (int) Math.Round(Math.Cos(-angle) * distance) + image.CodeCenterX;
             y = (int) Math.Round(Math.Sin(-angle) * distance) + image.CodeCenterY;
@@ -247,7 +247,7 @@ namespace CircleTag
         {
             double startingAngle = -1;
             const double angleStepSize = Math.PI / 360.0 / 2.0;
-            const double radiusOffset = 2.0;
+            const int radiusOffset = 2;
             double currentAngle = 0.0;
             for (int step = 0; currentAngle < Math.PI * 2; step++)
             {
@@ -284,7 +284,7 @@ namespace CircleTag
             return false;
         }
 
-        private static bool TryFindTagCenterCoordinates(TagImage tagImage, int offX, int offY, out int foundCenterX, out int foundCenterY, out double radius)
+        private static bool TryFindTagCenterCoordinates(TagImage tagImage, int offX, int offY, out int foundCenterX, out int foundCenterY, out int radius)
         {
             foundCenterX = -1;
             foundCenterY = -1;
@@ -298,8 +298,8 @@ namespace CircleTag
             int width = right - left;
             int height = up - down;
 
-            foundCenterX = (left + width) / 2;
-            foundCenterY = (down + height) / 2;
+            foundCenterX = (left + width) >> 1;
+            foundCenterY = (down + height) >> 1;
 
             int diff = width - height;
             // Optimized diff = abs(diff), works as long as diff is not int.MinValue, which it is assumed to not be in this case.
@@ -309,7 +309,7 @@ namespace CircleTag
             if (diff > 1) return false;
             
             // Then calculate the radius from given width and height
-            radius = (width < height ? width : height) * 0.5;
+            radius = (width < height ? width : height) >> 1;
             
             return true;
         }
