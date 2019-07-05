@@ -1,5 +1,6 @@
 
 using System;
+using System.Net.Security;
 using UnityEngine;
 using Random = System.Random;
 
@@ -96,21 +97,6 @@ namespace CircleTag
             }
 
             return false;
-        }
-
-        private static bool TryFindRadius(TagImage tagImage)
-        {
-            if (!TryCalculateDistances(tagImage, tagImage.CodeCenterX, tagImage.CodeCenterY, out double a, out double b, out double c, out double d))
-            {
-                return false;
-            }
-
-            double ab = Math.Abs(a - b);
-            double cd = Math.Abs(c - d);
-
-            tagImage.CodeRadius = Math.Min(ab, cd) / 2.0;
-
-            return tagImage.CodeRadius > 0.0;
         }
 
         private static bool TryFindLayerSizeAndCount(TagImage tagImage)
@@ -260,7 +246,7 @@ namespace CircleTag
         private static bool TryFindStartingAngleAndSegmentSize(TagImage tagImage)
         {
             double startingAngle = -1;
-            const double angleStepSize = Math.PI / 360.0;
+            const double angleStepSize = Math.PI / 360.0 / 2.0;
             const double radiusOffset = 2.0;
             double currentAngle = 0.0;
             for (int step = 0; currentAngle < Math.PI * 2; step++)
@@ -304,31 +290,36 @@ namespace CircleTag
             foundCenterY = -1;
             radius = -1;
             
-            if (!TryCalculateDistances(tagImage, tagImage.CenterX + offX, tagImage.CenterY + offY, out double a, out double b, out double c, out double d))
+            if (!TryCalculateDistances(tagImage, tagImage.CenterX + offX, tagImage.CenterY + offY, out int left, out int right, out int down, out int up))
             {
                 return false;
             }
 
-            double ab = b - a;
-            double cd = d - c;
+            int width = right - left;
+            int height = up - down;
 
-            foundCenterX = (int) Math.Floor(a + (ab / 2));
-            foundCenterY = (int) Math.Floor(c + (cd / 2));
+            foundCenterX = (left + width) / 2;
+            foundCenterY = (down + height) / 2;
 
-            ab = Math.Abs(ab);
-            cd = Math.Abs(cd);
+            int diff = width - height;
+            // Optimized diff = abs(diff), works as long as diff is not int.MinValue, which it is assumed to not be in this case.
+            diff = (diff + (diff >> 31)) ^ (diff >> 31);
+
+            // If the difference is too large, failed to read the image
+            if (diff > 1) return false;
             
-            radius = (ab < cd ? ab : cd) / 2.0;
+            // Then calculate the radius from given width and height
+            radius = (width < height ? width : height) * 0.5;
             
             return true;
         }
 
-        private static bool TryCalculateDistances(TagImage tagImage, int originX, int originY, out double a, out double b, out double c, out double d)
+        private static bool TryCalculateDistances(TagImage tagImage, int originX, int originY, out int left, out int right, out int down, out int up)
         {
-            a = -1;
-            b = -1;
-            c = -1;
-            d = -1;
+            left = -1;
+            right = -1;
+            down = -1;
+            up = -1;
             int size = tagImage.Width / 2;
             uint diff = 0;
 
@@ -338,9 +329,9 @@ namespace CircleTag
                 int y = originY;
                 if(x >= 0 && x < tagImage.Width)
                 {
-                    if (a < 0 && tagImage.CheckPixel(x, y, out diff))
+                    if (left < 0 && tagImage.CheckPixel(x, y, out diff))
                     {
-                        a = x + 1;
+                        left = x + 1;
                     }
                     _debugImage?.WriteColor(x, y, diff | 0xff000000);
                 }
@@ -348,9 +339,9 @@ namespace CircleTag
                 x = originX + i;
                 if(x >= 0 && x < tagImage.Width)
                 {
-                    if (b < 0 && tagImage.CheckPixel(x, y, out diff))
+                    if (right < 0 && tagImage.CheckPixel(x, y, out diff))
                     {
-                        b = x - 1;
+                        right = x - 1;
                     }
                     _debugImage?.WriteColor(x, y, diff | 0xff000000);
                 }
@@ -359,9 +350,9 @@ namespace CircleTag
                 y = originY - i;
                 if(y >= 0 && y < tagImage.Height)
                 {
-                    if (c < 0 && tagImage.CheckPixel(x, y, out diff))
+                    if (down < 0 && tagImage.CheckPixel(x, y, out diff))
                     {
-                        c = y + 1;
+                        down = y + 1;
                     }
                     _debugImage?.WriteColor(x, y, diff | 0xff000000);
                 }
@@ -369,14 +360,14 @@ namespace CircleTag
                 y = originY + i;
                 if(y >= 0 && y < tagImage.Height)
                 {
-                    if (d < 0 && tagImage.CheckPixel(x, y, out diff))
+                    if (up < 0 && tagImage.CheckPixel(x, y, out diff))
                     {
-                        d = y - 1;
+                        up = y - 1;
                     }
                     _debugImage?.WriteColor(x, y, diff | 0xff000000);
                 }
                 
-                if(a >= 0 && b >= 0 && c >= 0 && d >= 0) return true;
+                if(left >= 0 && right >= 0 && down >= 0 && up >= 0) return true;
             }
 
             return false;

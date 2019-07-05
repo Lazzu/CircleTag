@@ -80,9 +80,9 @@ namespace CircleTag
             {
                 int bitOffset = i * 8;
                 int mask = 0x000000ff << bitOffset;
-                int value1 = (int)((color1 & mask) >> bitOffset);
-                int value2 = (int)((color2 & mask) >> bitOffset);
-                int colorChannelDiff = value1 - value2;
+                long value1 = (color1 & mask) >> bitOffset;
+                long value2 = (color2 & mask) >> bitOffset;
+                int colorChannelDiff = (int)(value1 - value2);
                 //diff += Math.Abs(colorChannelDiff);
                 // Minor optimization. This works because we expect the colorChannelDiff to not be anywhere near
                 // the int.MinValue, which if it was would screw up this calculation.

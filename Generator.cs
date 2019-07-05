@@ -85,63 +85,64 @@ namespace CircleTag
 
         private static uint PixelColor(int x, int y, int centerX, int centerY, IReadOnlyList<byte> data, uint hasPixelColor, uint emptyPixelColor)
         {
-            // Calculate pixel offset from center
-            double offX = x - centerX;
-            double offY = y - centerY;
-            
-            // Calculate normalized distance from center
-            double length = Math.Sqrt(offX * offX + offY * offY);
-            double distance = length * _imageLengthNormalizerCached;
-            
-            // Map point to inside of StartingRadius and EndingRadius
-            double pointDistance = (distance - _settings.StartingRadius) * _radiusScale;
-            if (pointDistance < 0.0 || pointDistance > 1.0)
+            unchecked
             {
-                // Point is outside of starting and ending radius
-                return emptyPixelColor;
+                // Calculate pixel offset from center
+                double offX = x - centerX;
+                double offY = y - centerY;
+                
+                // Calculate normalized distance from center
+                double length = Math.Sqrt(offX * offX + offY * offY);
+                double distance = length * _imageLengthNormalizerCached;
+                
+                // Normalize distance so that StartingRadius = 0.0 and EndingRadius = 1.0
+                double pointDistance = (distance - _settings.StartingRadius) * _radiusScale;
+                if (pointDistance < 0.0 || pointDistance > 1.0)
+                {
+                    // Point is outside of starting and ending radius
+                    return emptyPixelColor;
+                }
+                
+                // Calculate the layer
+                int layer = (int)(pointDistance * _layerCount);
+                
+                // Calculate the segment number on layer
+                double invLength = 1.0 / length;
+                double normX = offX * invLength;
+                double normY = offY * invLength;
+                int segment = GetSegment(normX, normY);
+                
+                // Draw inner ring so that there is an empty mark for the segment 0, except when there is no data
+                if (layer <= 0)
+                {
+                    return data.Count < 3 || segment > 0 ? hasPixelColor : emptyPixelColor;
+                }
+                
+                // Offset layer to accommodate for the inner ring
+                layer--;
+
+                // The first segment should be solid to allow finding the orientation, except when there is no data
+                if (segment == 0)
+                {
+                    return data.Count > 3 ? hasPixelColor : emptyPixelColor;
+                }
+
+                // Reduce one segment off so the number of segments aligns to number of bytes
+                segment--;
+
+                // Calculate byte array index for the layer and segment
+                int byteOffset = segment >> 3; // segment / amountOfBitsInByte
+                int dataIndex = layer * _settings.BytesPerLayer + byteOffset;
+                
+                // Calculate mask byte for reading the byte array
+                byte mask = (byte)(0b00000001 << (segment % 8));
+                
+                // Return empty pixel for where the data has ended
+                if (data.Count <= dataIndex) return emptyPixelColor;
+                
+                // Return if bit is true or false
+                return (data[dataIndex] & mask) > 0 ? hasPixelColor : emptyPixelColor;
             }
-            
-            // Calculate the layer
-            int layer = (int)(pointDistance * _layerCount);
-            
-            // Calculate the segment number on layer
-            double invLength = 1.0 / length;
-            double normX = offX * invLength;
-            double normY = offY * invLength;
-            int segment = GetSegment(normX, normY);
-            
-            // Draw inner ring so that there is an empty mark for the segment 0, except when there is no data
-            if (layer <= 0)
-            {
-                return data.Count < 3 || segment > 0 ? hasPixelColor : emptyPixelColor;
-            }
-            
-            // Offset layer to accommodate for the inner ring
-            layer--;
-
-            // The first segment should be solid to allow finding the orientation, except when there is no data
-            if (segment == 0)
-            {
-                return data.Count > 3 ? hasPixelColor : emptyPixelColor;
-            }
-
-            // Reduce one segment off so the number of segments aligns to number of bytes
-            segment--;
-
-            // Calculate byte array index for the layer and segment
-            int byteOffset = segment >> 3;
-            int dataIndex = layer * _settings.BytesPerLayer + byteOffset;
-
-            const byte bit = 0x00000001;
-            
-            // Calculate mask byte for reading the byte array
-            byte mask = (byte)(bit << (segment % 8));
-            
-            // Return empty pixel for where the data has ended
-            if (data.Count <= dataIndex) return emptyPixelColor;
-            
-            // Return if bit is true or false
-            return (data[dataIndex] & mask) > 0 ? hasPixelColor : emptyPixelColor;
         }
 
         private static int GetSegment(double normX, double normY)
