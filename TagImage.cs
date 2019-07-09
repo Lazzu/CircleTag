@@ -76,9 +76,8 @@ namespace CircleTag
         public static uint ColorDiff(uint color1, uint color2)
         {
             uint diff = 0;
-            for (int i = 0; i < 4; i++)
+            for (int bitOffset = 0; bitOffset < 32; bitOffset+=8)
             {
-                int bitOffset = i * 8;
                 int mask = 0x000000ff << bitOffset;
                 int value1 = (int)((color1 & mask) >> bitOffset);
                 int value2 = (int)((color2 & mask) >> bitOffset);

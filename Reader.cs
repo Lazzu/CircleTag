@@ -67,7 +67,7 @@ namespace CircleTag
                 int offX = iteration * 5;
                 int offY = iteration * 5;
                 
-                // Check if we went past the half of the width of the image
+                // Check if we went past the half of the size of the image
                 if(offX > tagImage.CenterX) return false;
                 if(offY > tagImage.CenterY) return false;
                 
@@ -168,7 +168,7 @@ namespace CircleTag
             // If the number of segments - 1 can be divided by 8 equally, it should be a correct amount of segments
             return (segments -1) % 8 == 0 ? segments : -1;
         }
-
+bitOffset
         private static bool TryReadData(TagImage tagImage, out byte[] bytes)
         {
             bytes = null;
@@ -179,13 +179,16 @@ namespace CircleTag
             byte currentBit = 1;
             byte currentByte = 0;
             byte sizeByte = 0;
+            int halfCodeLayerSize = tagImage.CodeLayerSize / 2;
+            double startingAngle = tagImage.CodeStartingAngle + halfSegment;
             for (int layer = 0; layer < tagImage.CodeLayerCount; layer++)
             {
+                int layerSize = tagImage.CodeSegmentSize * layer;
                 for (int segment = 1; segment < segments; segment++)
                 {
                     // Calculate coordinates
-                    double angle = tagImage.CodeStartingAngle + segment * tagImage.CodeSegmentSize + halfSegment;
-                    int distance = tagImage.CodeRadius + tagImage.CodeLayerSize + layer * tagImage.CodeLayerSize + tagImage.CodeLayerSize / 2; 
+                    double angle = startingAngle + segment * tagImage.CodeSegmentSize;
+                    int distance = tagImage.CodeRadius + tagImage.CodeLayerSize + layerSize + halfCodeLayerSize; 
                     CalculateCoords(tagImage, angle, distance, out int x, out int y);
                     
                     // Read bit
