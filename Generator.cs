@@ -135,7 +135,8 @@ namespace CircleTag
                 int dataIndex = layer * _settings.BytesPerLayer + byteOffset;
                 
                 // Calculate mask byte for reading the byte array
-                byte mask = (byte)(0b00000001 << (segment % 8));
+                int currentBit = (segment << 5) >> 5;
+                byte mask = (byte)(0b00000001 << currentBit);
                 
                 // Return empty pixel for where the data has ended
                 if (data.Count <= dataIndex) return emptyPixelColor;
