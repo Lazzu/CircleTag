@@ -135,6 +135,7 @@ namespace CircleTag
                 int dataIndex = layer * _settings.BytesPerLayer + byteOffset;
                 
                 // Calculate mask byte for reading the byte array
+                // Optimization: currentBit = segment % 8
                 int currentBit = (segment << 29) >> 29;
                 byte mask = (byte)(0b00000001 << currentBit);
                 
