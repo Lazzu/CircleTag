@@ -33,7 +33,7 @@ namespace CircleTag
 #endif
 
             tagImage.BaseColor = tagImage.ReadColor(tagImage.CenterX, tagImage.CenterY);
-            int maxIterations = Mathf.Min(width, height) / 32;
+            int maxIterations = ((int)Math.Min(width, height)) / 32;
 
             if (maxIterations <= 0)
             {
@@ -166,7 +166,7 @@ namespace CircleTag
         {
             int segments = (int) Math.Round(Math.PI * 2 / segmentSize);
             // If the number of segments - 1 can be divided by 8 equally, it should be a correct amount of segments
-            return (segments -1) % 8 == 0 ? segments : -1;
+            return (segments - 1) % 8 == 0 ? segments : -1;
         }
 
         private static bool TryReadData(TagImage tagImage, out byte[] bytes)
