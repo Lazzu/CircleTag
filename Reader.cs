@@ -103,7 +103,7 @@ namespace CircleTag
         {
             int layerSize = 0;
             int layerCount = 0;
-            double angle = tagImage.CodeStartingAngle + tagImage.CodeSegmentSize / 2.0;
+            double angle = tagImage.CodeStartingAngle + tagImage.CodeSegmentSize * 0.5;
             int startingIndex = tagImage.CodeRadius;
             uint dataColor = 0;
             int usedWidth = Math.Min(tagImage.CodeCenterX, tagImage.Width / 2);
