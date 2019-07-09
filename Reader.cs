@@ -168,7 +168,7 @@ namespace CircleTag
             // If the number of segments - 1 can be divided by 8 equally, it should be a correct amount of segments
             return (segments -1) % 8 == 0 ? segments : -1;
         }
-bitOffset
+
         private static bool TryReadData(TagImage tagImage, out byte[] bytes)
         {
             bytes = null;
